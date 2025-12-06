@@ -2,30 +2,26 @@
 
 A production-ready machine learning web application for detecting spam SMS messages with multi-model comparison and real-time prediction capabilities.
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-orange.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## 🌟 Live Demo
+## Live Demo
 
-**[Try the app here](#)** *(Add your Streamlit Cloud URL)*
+**[https://mlspamdetectionapp-65ytzvpxuuk4tyjjwdyyjp.streamlit.app/](#)**
 
-## 📋 Overview
+## Overview
 
 This project implements a complete spam detection pipeline using multiple machine learning algorithms. The interactive Streamlit interface allows users to test individual messages, perform batch analysis, and compare predictions across different models in real-time.
 
 ### Key Features
 
-- ✅ **Multi-Model Architecture**: Compare Naive Bayes, Complement NB, and Logistic Regression
-- ✅ **Real-Time Prediction**: Instant spam/ham classification with confidence scores
-- ✅ **Batch Testing**: Process multiple messages simultaneously
-- ✅ **Model Comparison Mode**: Side-by-side prediction analysis with consensus voting
-- ✅ **Interactive Visualizations**: Dynamic charts using Plotly
-- ✅ **CSV Export**: Download batch results for further analysis
-- ✅ **Adjustable Threshold**: Fine-tune sensitivity for precision/recall trade-offs
+- **Multi-Model Architecture**: Compare Naive Bayes, Complement NB, and Logistic Regression
+- **Real-Time Prediction**: Instant spam/ham classification with confidence scores
+- **Batch Testing**: Process multiple messages simultaneously
+- **Model Comparison Mode**: Side-by-side prediction analysis with consensus voting
+- **Interactive Visualizations**: Dynamic charts using Plotly
+- **CSV Export**: Download batch results for further analysis
+- **Adjustable Threshold**: Fine-tune sensitivity for precision/recall trade-offs
 
-## 🎯 Performance Metrics
+## Performance Metrics
 
 | Model | Accuracy | Precision | Recall | F1-Score |
 |-------|----------|-----------|--------|----------|
@@ -33,7 +29,7 @@ This project implements a complete spam detection pipeline using multiple machin
 | Complement NB | **98.7%** | 96.8% | 94.5% | 95.6% |
 | Logistic Regression | 97.8% | 94.2% | 91.8% | 93.0% |
 
-## 🚀 Quick Start
+## Usage Guide
 
 ### Prerequisites
 
@@ -60,7 +56,7 @@ streamlit run spam_detector_app.py
 
 The app will automatically open in your browser at `http://localhost:8501`
 
-## 📊 Usage
+## To Use:
 
 ### Single Model Testing
 
@@ -83,7 +79,7 @@ The app will automatically open in your browser at `http://localhost:8501`
 3. Click **"Analyze Batch"** for results
 4. Download results as CSV for further analysis
 
-## 🛠️ Technical Stack
+## Stack Used
 
 **Machine Learning**
 - scikit-learn - Model training and evaluation
@@ -114,7 +110,7 @@ sms-spam-detector/
     └── spam_assignment.xlsx   # Training dataset
 ```
 
-## 🧠 Model Details
+## Model Details
 
 ### Naive Bayes (Multinomial)
 - Fast probabilistic classifier
@@ -131,51 +127,8 @@ sms-spam-detector/
 - L2 regularization
 - Interpretable feature weights
 
-## 🎨 Features Breakdown
 
-### Text Preprocessing
-- Lowercase conversion
-- Special character removal
-- Tokenization and cleaning
-
-### Feature Engineering
-- TF-IDF vectorization with n-grams
-- Text length statistics
-- Spam keyword detection
-- Word diversity metrics
-
-### Model Training
-- 80/20 train-test split
-- Stratified sampling for class balance
-- Cross-validation for hyperparameter tuning
-
-## 📈 Training Your Own Models
-
-To retrain models with your own data:
-
-1. Prepare your dataset in Excel format with columns:
-   - `v1`: Label ('spam' or 'ham')
-   - `v2`: Message text
-
-2. Run the training script:
-```bash
-python train_models.py
-```
-
-3. Models will be saved to the `models/` directory
-
-## 🌐 Deployment
-
-### Streamlit Cloud (Recommended)
-
-1. Push code to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your repository
-4. Deploy with one click
-
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
-
-## 📝 Example Messages
+## Example Messages
 
 **Spam Examples:**
 - "FREE entry in 2 a wkly comp to win FA Cup final tickets!"
@@ -186,39 +139,3 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
 - "Hey, are you free for lunch today?"
 - "Meeting moved to 3pm. See you there!"
 - "Thanks for your help yesterday!"
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-**Ronny**
-- Computer Science Student
-- Specialization: Machine Learning & AI
-
-## 🙏 Acknowledgments
-
-- SMS Spam Collection Dataset
-- scikit-learn documentation
-- Streamlit community
-
-## 📧 Contact
-
-For questions or feedback, please open an issue on GitHub.
-
----
-
-**Built with ❤️ using Python, Streamlit, and Machine Learning**
-
-⭐ Star this repository if you find it helpful!
