@@ -70,9 +70,9 @@ class SpamDetector:
         
         # Try to load different model types
         model_files = {
-            'Naive Bayes': 'naive_bayes_spam_model.pkl',
+            'Naive Bayes': 'best_nb_pipeline.pkl',
             'Complement NB': 'best_cnb_pipeline.pkl',
-            'Logistic Regression': 'logistic_regression.pkl',
+            'Logistic Regression': 'logreg_optimals_pipeline.pkl',
         }
         
         for name, filename in model_files.items():
