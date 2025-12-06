@@ -207,11 +207,29 @@ def main():
             st.info("Run the training script to generate models.")
             return
         
-        selected_model = st.selectbox(
-            "Select Model",
-            available_models,
-            help="Choose which model to use for prediction"
+        # Mode selection: Single or Compare
+        test_mode = st.radio(
+            "Testing Mode",
+            ["Single Model", "Compare Models"],
+            help="Choose to test with one model or compare multiple models"
         )
+        
+        if test_mode == "Single Model":
+            selected_models = [st.selectbox(
+                "Select Model",
+                available_models,
+                help="Choose which model to use for prediction"
+            )]
+        else:
+            selected_models = st.multiselect(
+                "Select Models to Compare",
+                available_models,
+                default=available_models,
+                help="Choose multiple models to compare predictions"
+            )
+            if not selected_models:
+                st.warning("Please select at least one model")
+                selected_models = [available_models[0]]
         
         # Threshold adjustment
         threshold = st.slider(
@@ -227,8 +245,13 @@ def main():
         
         # Model info
         st.subheader("📊 Model Info")
-        st.info(f"**Active Model:** {selected_model}")
-        st.info(f"**Total Models:** {len(available_models)}")
+        if test_mode == "Single Model":
+            st.info(f"**Active Model:** {selected_models[0]}")
+        else:
+            st.info(f"**Comparing:** {len(selected_models)} models")
+            for model in selected_models:
+                st.write(f"• {model}")
+        st.info(f"**Total Available:** {len(available_models)}")
         
         st.markdown("---")
         
@@ -276,38 +299,102 @@ def main():
             if st.button("🔎 Analyze Message", type="primary", use_container_width=True):
                 if message.strip():
                     with st.spinner("Analyzing..."):
-                        prediction, proba = detector.predict(message, selected_model, threshold)
+                        st.markdown("### Results")
                         
-                        if prediction is not None:
-                            st.markdown("### Results")
+                        if test_mode == "Compare Models":
+                            # Compare multiple models
+                            st.markdown("#### 📊 Model Comparison")
                             
-                            # Result display
-                            if prediction == 1:
-                                st.markdown(
-                                    f'<div class="spam-message"><h3>🚨 SPAM DETECTED</h3>'
-                                    f'<p>Confidence: {proba[1]*100:.1f}%</p></div>',
-                                    unsafe_allow_html=True
+                            results = []
+                            for model_name in selected_models:
+                                prediction, proba = detector.predict(message, model_name, threshold)
+                                if prediction is not None:
+                                    results.append({
+                                        'Model': model_name,
+                                        'Prediction': 'SPAM' if prediction == 1 else 'HAM',
+                                        'Spam Confidence': f"{proba[1]*100:.1f}%",
+                                        'Ham Confidence': f"{proba[0]*100:.1f}%",
+                                        'spam_prob': proba[1]
+                                    })
+                            
+                            if results:
+                                # Create comparison table
+                                df_results = pd.DataFrame(results)
+                                st.dataframe(df_results[['Model', 'Prediction', 'Spam Confidence', 'Ham Confidence']], 
+                                           use_container_width=True, hide_index=True)
+                                
+                                # Visual comparison
+                                st.markdown("#### 📈 Visual Comparison")
+                                
+                                # Create comparison chart
+                                fig = go.Figure()
+                                for i, row in enumerate(results):
+                                    model_name = row['Model']
+                                    spam_prob = row['spam_prob']
+                                    ham_prob = 1 - spam_prob
+                                    
+                                    fig.add_trace(go.Bar(
+                                        name=model_name,
+                                        x=['Ham', 'Spam'],
+                                        y=[ham_prob * 100, spam_prob * 100],
+                                        text=[f'{ham_prob*100:.1f}%', f'{spam_prob*100:.1f}%'],
+                                        textposition='auto',
+                                    ))
+                                
+                                fig.update_layout(
+                                    title="Prediction Confidence Comparison",
+                                    yaxis_title="Probability (%)",
+                                    barmode='group',
+                                    height=400,
+                                    margin=dict(l=20, r=20, t=40, b=20)
                                 )
-                            else:
-                                st.markdown(
-                                    f'<div class="ham-message"><h3>✅ LEGITIMATE MESSAGE</h3>'
-                                    f'<p>Confidence: {proba[0]*100:.1f}%</p></div>',
-                                    unsafe_allow_html=True
+                                
+                                st.plotly_chart(fig, use_container_width=True)
+                                
+                                # Consensus analysis
+                                spam_count = sum(1 for r in results if r['Prediction'] == 'SPAM')
+                                ham_count = len(results) - spam_count
+                                
+                                st.markdown("#### 🎯 Consensus")
+                                if spam_count > ham_count:
+                                    st.error(f"**Majority Vote: SPAM** ({spam_count}/{len(results)} models)")
+                                elif ham_count > spam_count:
+                                    st.success(f"**Majority Vote: HAM** ({ham_count}/{len(results)} models)")
+                                else:
+                                    st.warning(f"**Split Decision** ({spam_count} SPAM, {ham_count} HAM)")
+                        
+                        else:
+                            # Single model prediction
+                            prediction, proba = detector.predict(message, selected_models[0], threshold)
+                            
+                            if prediction is not None:
+                                # Result display
+                                if prediction == 1:
+                                    st.markdown(
+                                        f'<div class="spam-message"><h3>🚨 SPAM DETECTED</h3>'
+                                        f'<p>Confidence: {proba[1]*100:.1f}%</p></div>',
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    st.markdown(
+                                        f'<div class="ham-message"><h3>✅ LEGITIMATE MESSAGE</h3>'
+                                        f'<p>Confidence: {proba[0]*100:.1f}%</p></div>',
+                                        unsafe_allow_html=True
+                                    )
+                                
+                                # Probability chart
+                                st.plotly_chart(
+                                    create_probability_chart(proba, prediction),
+                                    use_container_width=True
                                 )
-                            
-                            # Probability chart
-                            st.plotly_chart(
-                                create_probability_chart(proba, prediction),
-                                use_container_width=True
-                            )
-                            
-                            # Message statistics
-                            with st.expander("📈 Message Statistics"):
-                                col_a, col_b, col_c, col_d = st.columns(4)
-                                col_a.metric("Characters", len(message))
-                                col_b.metric("Words", len(message.split()))
-                                col_c.metric("Avg Word Length", f"{len(message)/max(len(message.split()), 1):.1f}")
-                                col_d.metric("Unique Words", len(set(message.lower().split())))
+                        
+                        # Message statistics (for both modes)
+                        with st.expander("📈 Message Statistics"):
+                            col_a, col_b, col_c, col_d = st.columns(4)
+                            col_a.metric("Characters", len(message))
+                            col_b.metric("Words", len(message.split()))
+                            col_c.metric("Avg Word Length", f"{len(message)/max(len(message.split()), 1):.1f}")
+                            col_d.metric("Unique Words", len(set(message.lower().split())))
                 else:
                     st.warning("⚠️ Please enter a message to analyze.")
         
@@ -315,7 +402,10 @@ def main():
             st.subheader("💡 Quick Stats")
             
             # Display some helpful metrics
-            st.metric("Active Model", selected_model)
+            if test_mode == "Single Model":
+                st.metric("Active Model", selected_models[0])
+            else:
+                st.metric("Models Testing", len(selected_models))
             st.metric("Threshold", f"{threshold:.2f}")
             
             if message:
@@ -327,6 +417,11 @@ def main():
     # Tab 2: Batch testing
     with tab2:
         st.header("Batch Message Testing")
+        
+        if test_mode == "Compare Models":
+            st.info(f"📊 Testing with {len(selected_models)} models: {', '.join(selected_models)}")
+        else:
+            st.info(f"📊 Testing with: {selected_models[0]}")
         
         st.write("Test multiple messages at once by entering them below (one per line)")
         
@@ -340,40 +435,88 @@ def main():
             if batch_input.strip():
                 messages = [msg.strip() for msg in batch_input.split('\n') if msg.strip()]
                 
-                results = []
-                for msg in messages:
-                    prediction, proba = detector.predict(msg, selected_model, threshold)
-                    if prediction is not None:
-                        results.append({
-                            'Message': msg[:50] + '...' if len(msg) > 50 else msg,
-                            'Classification': 'SPAM' if prediction == 1 else 'HAM',
-                            'Confidence': f"{max(proba)*100:.1f}%",
-                            'Spam Probability': proba[1]
-                        })
+                if test_mode == "Compare Models":
+                    # Compare models on batch
+                    st.subheader("📊 Model Comparison Results")
+                    
+                    all_results = []
+                    for msg in messages:
+                        msg_results = {'Message': msg[:50] + '...' if len(msg) > 50 else msg}
+                        
+                        for model_name in selected_models:
+                            prediction, proba = detector.predict(msg, model_name, threshold)
+                            if prediction is not None:
+                                msg_results[f'{model_name} Prediction'] = 'SPAM' if prediction == 1 else 'HAM'
+                                msg_results[f'{model_name} Confidence'] = f"{max(proba)*100:.1f}%"
+                        
+                        all_results.append(msg_results)
+                    
+                    if all_results:
+                        df = pd.DataFrame(all_results)
+                        
+                        # Summary metrics per model
+                        st.markdown("#### 📈 Summary by Model")
+                        summary_cols = st.columns(len(selected_models))
+                        
+                        for i, model_name in enumerate(selected_models):
+                            with summary_cols[i]:
+                                pred_col = f'{model_name} Prediction'
+                                if pred_col in df.columns:
+                                    spam_count = (df[pred_col] == 'SPAM').sum()
+                                    ham_count = (df[pred_col] == 'HAM').sum()
+                                    st.metric(model_name, f"{spam_count} spam")
+                                    st.caption(f"{ham_count} ham")
+                        
+                        # Full results table
+                        st.markdown("#### 📋 Detailed Results")
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                        
+                        # Download results
+                        csv = df.to_csv(index=False)
+                        st.download_button(
+                            "📥 Download Results",
+                            csv,
+                            "spam_detection_comparison.csv",
+                            "text/csv",
+                            key='download-csv-compare'
+                        )
                 
-                if results:
-                    df = pd.DataFrame(results)
+                else:
+                    # Single model batch testing
+                    results = []
+                    for msg in messages:
+                        prediction, proba = detector.predict(msg, selected_models[0], threshold)
+                        if prediction is not None:
+                            results.append({
+                                'Message': msg[:50] + '...' if len(msg) > 50 else msg,
+                                'Classification': 'SPAM' if prediction == 1 else 'HAM',
+                                'Confidence': f"{max(proba)*100:.1f}%",
+                                'Spam Probability': proba[1]
+                            })
                     
-                    # Summary metrics
-                    st.subheader("📊 Batch Summary")
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Total Messages", len(results))
-                    col2.metric("Spam Detected", sum(1 for r in results if r['Classification'] == 'SPAM'))
-                    col3.metric("Legitimate", sum(1 for r in results if r['Classification'] == 'HAM'))
-                    
-                    # Results table
-                    st.subheader("📋 Detailed Results")
-                    st.dataframe(df, use_container_width=True, hide_index=True)
-                    
-                    # Download results
-                    csv = df.to_csv(index=False)
-                    st.download_button(
-                        "📥 Download Results",
-                        csv,
-                        "spam_detection_results.csv",
-                        "text/csv",
-                        key='download-csv'
-                    )
+                    if results:
+                        df = pd.DataFrame(results)
+                        
+                        # Summary metrics
+                        st.subheader("📊 Batch Summary")
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Total Messages", len(results))
+                        col2.metric("Spam Detected", sum(1 for r in results if r['Classification'] == 'SPAM'))
+                        col3.metric("Legitimate", sum(1 for r in results if r['Classification'] == 'HAM'))
+                        
+                        # Results table
+                        st.subheader("📋 Detailed Results")
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                        
+                        # Download results
+                        csv = df.to_csv(index=False)
+                        st.download_button(
+                            "📥 Download Results",
+                            csv,
+                            "spam_detection_results.csv",
+                            "text/csv",
+                            key='download-csv'
+                        )
             else:
                 st.warning("⚠️ Please enter at least one message.")
     
@@ -419,6 +562,9 @@ def main():
     with tab4:
         st.header("Example Messages")
         
+        if test_mode == "Compare Models":
+            st.info(f"🔬 Comparing with {len(selected_models)} models")
+        
         st.write("Try these example messages to see how the model performs:")
         
         col1, col2 = st.columns(2)
@@ -435,11 +581,20 @@ def main():
             
             for i, example in enumerate(spam_examples, 1):
                 if st.button(f"Test Spam #{i}", key=f"spam_{i}"):
-                    prediction, proba = detector.predict(example, selected_model, threshold)
-                    if prediction is not None:
-                        result = "SPAM" if prediction == 1 else "HAM"
-                        st.write(f"**Message:** {example}")
-                        st.write(f"**Prediction:** {result} ({proba[1]*100:.1f}% spam probability)")
+                    st.write(f"**Message:** {example}")
+                    
+                    if test_mode == "Compare Models":
+                        st.markdown("**Predictions:**")
+                        for model_name in selected_models:
+                            prediction, proba = detector.predict(example, model_name, threshold)
+                            if prediction is not None:
+                                result = "🚨 SPAM" if prediction == 1 else "✅ HAM"
+                                st.write(f"• **{model_name}:** {result} ({proba[1]*100:.1f}% spam)")
+                    else:
+                        prediction, proba = detector.predict(example, selected_models[0], threshold)
+                        if prediction is not None:
+                            result = "SPAM" if prediction == 1 else "HAM"
+                            st.write(f"**Prediction:** {result} ({proba[1]*100:.1f}% spam probability)")
         
         with col2:
             st.subheader("✅ Legitimate Examples")
@@ -453,19 +608,31 @@ def main():
             
             for i, example in enumerate(ham_examples, 1):
                 if st.button(f"Test Ham #{i}", key=f"ham_{i}"):
-                    prediction, proba = detector.predict(example, selected_model, threshold)
-                    if prediction is not None:
-                        result = "SPAM" if prediction == 1 else "HAM"
-                        st.write(f"**Message:** {example}")
-                        st.write(f"**Prediction:** {result} ({proba[0]*100:.1f}% ham probability)")
+                    st.write(f"**Message:** {example}")
+                    
+                    if test_mode == "Compare Models":
+                        st.markdown("**Predictions:**")
+                        for model_name in selected_models:
+                            prediction, proba = detector.predict(example, model_name, threshold)
+                            if prediction is not None:
+                                result = "🚨 SPAM" if prediction == 1 else "✅ HAM"
+                                st.write(f"• **{model_name}:** {result} ({proba[0]*100:.1f}% ham)")
+                    else:
+                        prediction, proba = detector.predict(example, selected_models[0], threshold)
+                        if prediction is not None:
+                            result = "SPAM" if prediction == 1 else "HAM"
+                            st.write(f"**Prediction:** {result} ({proba[0]*100:.1f}% ham probability)")
 
     # Footer
     st.markdown("---")
+    footer_text = f"Built with Streamlit | Machine Learning Spam Detector | "
+    if test_mode == "Compare Models":
+        footer_text += f"Comparing {len(selected_models)} models"
+    else:
+        footer_text += f"Using {selected_models[0]}"
+    
     st.markdown(
-        "<div style='text-align: center; color: #666;'>"
-        "Built with Streamlit | Machine Learning Spam Detector | "
-        f"Models Loaded: {len(available_models)}"
-        "</div>",
+        f"<div style='text-align: center; color: #666;'>{footer_text}</div>",
         unsafe_allow_html=True
     )
 
